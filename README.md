@@ -101,6 +101,8 @@ Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 
 A secure and scalable banking API built with NestJS and Prisma, designed for a fictional financial institution. This project demonstrates modern backend development practices including authentication, database design, testing, and deployment.
 
+Deployment Link: https://milestone-4-aetherx24-production.up.railway.app/
+
 ## 📋 Overview
 
 RevoBank API is a full-stack banking solution that provides secure access to banking operations for both customers and administrators. The system enables users to manage accounts, perform transactions, and monitor their financial activities through a robust RESTful API.
@@ -219,7 +221,7 @@ The application is deployed on Railway with the following configuration:
 
 ### Base URL
 - **Local**: `http://localhost:3000`
-- **Production**: `https://your-railway-url.railway.app`
+- **Production**: `https://milestone-4-aetherx24-production.up.railway.app/`
 
 ### Authentication Endpoints
 
@@ -467,3 +469,5 @@ For issues and questions:
 ---
 
 **Built with ❤️ using NestJS and Prisma**
+
+## Created By Muhammad Iqbal Maulana
