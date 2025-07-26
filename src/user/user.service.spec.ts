@@ -15,4 +15,7 @@ describe('UserService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
+
+  // Note: UserService is currently empty as the controller directly uses PrismaService
+  // Tests for user functionality are in the controller tests
 });
