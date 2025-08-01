@@ -13,6 +13,8 @@ RevoBank API is a full-stack banking solution that provides secure access to ban
 
 ### 🔐 Authentication & Authorization
 - **User Registration**: Secure user account creation with email validation
+- **Email Availability Check**: Real-time email availability validation
+- **Duplicate Email Handling**: Proper error responses for existing emails
 - **User Login**: JWT-based authentication system
 - **Role-based Access Control**: Support for both customers and administrators
 - **Protected Routes**: Secure endpoints using JWT guards
@@ -72,7 +74,7 @@ RevoBank API is a full-stack banking solution that provides secure access to ban
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repository-url>
+   git clone https://github.com/revou-fsse-feb25/milestone-4-Aetherx24.git
    cd milestone-4-Aetherx24
    ```
 
@@ -127,6 +129,19 @@ The application is deployed on Railway with the following configuration:
 
 ### Authentication Endpoints
 
+#### Check Email Availability
+```http
+GET /auth/check-email?email=user@example.com
+```
+
+**Response:**
+```json
+{
+  "available": true,
+  "message": "Email is available"
+}
+```
+
 #### Register User
 ```http
 POST /auth/register
@@ -136,6 +151,24 @@ Content-Type: application/json
   "email": "user@example.com",
   "password": "password123",
   "name": "John Doe"
+}
+```
+
+**Success Response (201):**
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "name": "John Doe"
+}
+```
+
+**Error Response (409) - Email already exists:**
+```json
+{
+  "statusCode": 409,
+  "message": "Email already exists",
+  "error": "Conflict"
 }
 ```
 
@@ -283,6 +316,8 @@ The project includes comprehensive test coverage for:
 - Account CRUD operations
 - Transaction processing
 - Error handling scenarios
+- Duplicate email registration handling
+- Email availability validation
 
 ## 📁 Project Structure
 
