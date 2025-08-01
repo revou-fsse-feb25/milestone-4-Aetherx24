@@ -1,16 +1,20 @@
-import { Controller, Get, Patch, Body, Request, UseGuards, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Patch, Body, Request, UseGuards, Param, Delete, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { PrismaService } from '../prisma/prisma.service';
+import { UserService } from './user.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { BulkUpdateRolesDto } from './dto/bulk-update-roles.dto';
+import { UserIdDto } from './dto/user-id.dto';
 
 @ApiTags('User Profile')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('user')
 export class UserController {
-  constructor(private prisma: PrismaService) {}
+  constructor(private userService: UserService) {}
 
   @Get('profile')
   @ApiOperation({ summary: 'Get user profile' })
@@ -30,11 +34,7 @@ export class UserController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProfile(@Request() req) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: req.user.userId },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
-    });
-    return user;
+    return this.userService.getUserProfile(req.user.userId);
   }
 
   @Patch('profile')
@@ -62,13 +62,16 @@ export class UserController {
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async updateProfile(@Request() req, @Body() body: { name?: string }) {
-    const user = await this.prisma.user.update({
-      where: { id: req.user.userId },
-      data: { name: body.name },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
-    });
-    return user;
+  async updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
+    return this.userService.updateUserProfile(req.user.userId, updateProfileDto);
+  }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Get user statistics' })
+  @ApiResponse({ status: 200, description: 'User statistics retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getUserStats(@Request() req) {
+    return this.userService.getUserStats(req.user.userId);
   }
 
   // Admin-only endpoints
@@ -79,21 +82,29 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
   async getAllUsers() {
-    return this.prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            accounts: true,
-          },
-        },
-      },
-    });
+    return this.userService.getAllUsers();
+  }
+
+  @Get('admin/search')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Search users (Admin only)' })
+  @ApiQuery({ name: 'q', description: 'Search query for name or email' })
+  @ApiResponse({ status: 200, description: 'Users found successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  async searchUsers(@Query('q') query: string) {
+    return this.userService.searchUsers(query);
+  }
+
+  @Get('admin/role/:role')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Get users by role (Admin only)' })
+  @ApiParam({ name: 'role', description: 'User role (USER or ADMIN)' })
+  @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  async getUsersByRole(@Param('role') role: string) {
+    return this.userService.getUsersByRole(role);
   }
 
   @Get('admin/:id')
@@ -104,38 +115,22 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getUserById(@Param('id') id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: +id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-        accounts: {
-          select: {
-            id: true,
-            balance: true,
-            createdAt: true,
-            transactions: {
-              select: {
-                id: true,
-                type: true,
-                amount: true,
-                description: true,
-                createdAt: true,
-              },
-            },
-          },
-        },
-      },
-    });
-    if (!user) {
-      throw new Error('User not found');
-    }
-    return user;
+  async getUserById(@Param() params: UserIdDto) {
+    const userId = parseInt(params.id, 10);
+    return this.userService.getUserById(userId);
+  }
+
+  @Get('admin/:id/activity')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Get user activity summary (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'User activity retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getUserActivitySummary(@Param() params: UserIdDto) {
+    const userId = parseInt(params.id, 10);
+    return this.userService.getUserActivitySummary(userId);
   }
 
   @Patch('admin/:id/role')
@@ -154,12 +149,48 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async updateUserRole(@Param('id') id: string, @Body() body: { role: string }) {
-    const user = await this.prisma.user.update({
-      where: { id: +id },
-      data: { role: body.role },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
-    });
-    return user;
+  async updateUserRole(@Param() params: UserIdDto, @Body() updateRoleDto: UpdateRoleDto) {
+    const userId = parseInt(params.id, 10);
+    return this.userService.updateUserRole(userId, updateRoleDto.role);
+  }
+
+  @Patch('admin/bulk-role')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Bulk update user roles (Admin only)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        updates: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              userId: { type: 'number' },
+              role: { type: 'string', enum: ['USER', 'ADMIN'] },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'User roles updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  async bulkUpdateUserRoles(@Body() bulkUpdateRolesDto: BulkUpdateRolesDto) {
+    return this.userService.bulkUpdateUserRoles(bulkUpdateRolesDto.updates);
+  }
+
+  @Delete('admin/:id')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Delete user (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'User deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async deleteUser(@Param() params: UserIdDto) {
+    const userId = parseInt(params.id, 10);
+    return this.userService.deleteUser(userId);
   }
 }
