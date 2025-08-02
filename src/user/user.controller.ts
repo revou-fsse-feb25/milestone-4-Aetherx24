@@ -115,8 +115,8 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getUserById(@Param() params: UserIdDto) {
-    const userId = parseInt(params.id, 10);
+  async getUserById(@Param('id') id: string) {
+    const userId = parseInt(id, 10);
     return this.userService.getUserById(userId);
   }
 
@@ -128,8 +128,8 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getUserActivitySummary(@Param() params: UserIdDto) {
-    const userId = parseInt(params.id, 10);
+  async getUserActivitySummary(@Param('id') id: string) {
+    const userId = parseInt(id, 10);
     return this.userService.getUserActivitySummary(userId);
   }
 
@@ -149,8 +149,8 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async updateUserRole(@Param() params: UserIdDto, @Body() updateRoleDto: UpdateRoleDto) {
-    const userId = parseInt(params.id, 10);
+  async updateUserRole(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
+    const userId = parseInt(id, 10);
     return this.userService.updateUserRole(userId, updateRoleDto.role);
   }
 
@@ -189,8 +189,8 @@ export class UserController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin access required' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async deleteUser(@Param() params: UserIdDto) {
-    const userId = parseInt(params.id, 10);
+  async deleteUser(@Param('id') id: string) {
+    const userId = parseInt(id, 10);
     return this.userService.deleteUser(userId);
   }
 }
